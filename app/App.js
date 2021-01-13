@@ -14,20 +14,33 @@ import { default as Sound } from 'react-native-sound';
 
 const App = () => {
 
-  const [digits, setDigits] = useState('');
-  const [speed, setSpeed] = useState('');
-  const [language, setLanguage] = useState('');
+  const [digits, setDigits] = useState('0');
+  const [speed, setSpeed] = useState('1000');
+  // const [language, setLanguage] = useState('');
 
-  const zero = new Sound('0.vaw', Sound.MAIN_BUNDLE, (error) =>{
-    if(error) return;
-  })
+  const sleep = (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
-  const handleClick = () =>{
-    // alert(`Memorizing ${digits} numbers with ${speed} speed in ${language}`)
-    zero.play((success)=>{
-      if(success) alert('finished playing');
-      else alert('error occured');
-    })
+  const handleStart = async () =>{
+
+    for(let i=0; i<Number(digits); i++){
+
+      //generating a random index
+      let index = Math.floor(Math.random()*9);
+
+      let sound = new Sound(audioFiles[index].url, (error) =>{
+        if(error){
+          alert('error ' + error.message);
+          return;
+        }
+        sound.play(()=>{
+          sound.release();
+        })
+      })
+      //waiting for the previous number to be spoken
+      await sleep(Number(speed));
+    }
   }
 
 
@@ -52,7 +65,7 @@ const App = () => {
             </View>
 
             <View style = {styles.row}>
-                <Text style = {styles.text}>Memorization Speed:</Text>
+                <Text style = {styles.text}>Memorization Speed(ms):</Text>
                 <TextInput 
                     style = {styles.input} 
                     keyboardType = 'number-pad'
@@ -61,7 +74,7 @@ const App = () => {
                 />
             </View>
 
-            <View style = {styles.row}>
+            {/* <View style = {styles.row}>
                 <Text style = {styles.text}>Language:</Text>
                 <DropDownPicker
                   items={[
@@ -72,10 +85,10 @@ const App = () => {
                   containerStyle={{width: 100}}
                   onChangeItem={item => setLanguage(item.value)}
                 />
-            </View>
+            </View> */}
 
             <View style = {styles.start}>
-                <Button title = 'Start' onPress = {handleClick}/>
+                <Button title = 'Start' onPress = {handleStart}/>
             </View>
 
         </ScrollView>
@@ -125,3 +138,47 @@ const styles = StyleSheet.create({
 });
 
 export default App;
+
+const audioFiles = [
+  {
+    title: '0',
+    url: require('./assets/0.wav')
+  },
+  {
+    title: '1',
+    url: require('./assets/1.wav')
+  },
+  {
+    title: '2',
+    url: require('./assets/2.wav')
+  },
+  {
+    title: '3',
+    url: require('./assets/3.wav')
+  },
+  {
+    title: '4',
+    url: require('./assets/4.wav')
+  },
+  {
+    title: '5',
+    url: require('./assets/5.wav')
+  },
+  {
+    title: '6',
+    url: require('./assets/6.wav')
+  },
+  {
+    title: '7',
+    url: require('./assets/7.wav')
+  },
+  {
+    title: '8',
+    url: require('./assets/8.wav')
+  },
+  {
+    title: '9',
+    url: require('./assets/9.wav')
+  },
+
+]
