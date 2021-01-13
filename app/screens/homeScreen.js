@@ -9,15 +9,14 @@ import {
   TextInput,
   Button
 } from 'react-native';
+
 import DropDownPicker from 'react-native-dropdown-picker';
 import { default as Sound } from 'react-native-sound';
 
-const App = () => {
+const HomeScreen = () => {
 
   const [digits, setDigits] = useState('0');
-  const [recall, setRecall] = useState('');
   const [speed, setSpeed] = useState('1000');
-  const [generatedDigits, setGeneratedDigits] = useState([]);
   // const [language, setLanguage] = useState('');
 
   const sleep = (ms) => {
@@ -30,7 +29,7 @@ const App = () => {
 
       //generating a random index
       let index = Math.floor(Math.random()*9);
-      setGeneratedDigits(generatedDigits => generatedDigits.concat(index));
+
       let sound = new Sound(audioFiles[index].url, (error) =>{
         if(error){
           alert('error ' + error.message);
@@ -43,14 +42,6 @@ const App = () => {
       //waiting for the previous number to be spoken
       await sleep(Number(speed));
     }
-  }
-  
-  const handleFinish = () =>{
-    let result = 0;
-    for(let i = 0; i<generatedDigits.length; i++){
-      if(generatedDigits[i] == recall[i]) result++;
-    }
-    alert(result)
   }
 
 
@@ -100,21 +91,7 @@ const App = () => {
             <View style = {styles.start}>
                 <Button title = 'Start' onPress = {handleStart}/>
             </View>
-            <Text>{generatedDigits.length}</Text>
-            {generatedDigits.length == digits ? generatedDigits.map((d, index) =>{
-              return <Text key = {index}>{d}</Text>
-            }) : null}
 
-            <TextInput 
-              style = {styles.input} 
-              keyboardType = 'number-pad'
-              onChangeText={text => setRecall(text)}
-              value={recall}
-            />
-
-            <View style = {styles.start}>
-                <Button title = 'Finish' onPress = {handleFinish}/>
-            </View>
         </ScrollView>
       </SafeAreaView>
     </>
@@ -161,48 +138,48 @@ const styles = StyleSheet.create({
   }
 });
 
-export default App;
+export default HomeScreen;
 
 const audioFiles = [
   {
     title: '0',
-    url: require('./assets/0.wav')
+    url: require('../assets/0.wav')
   },
   {
     title: '1',
-    url: require('./assets/1.wav')
+    url: require('../assets/1.wav')
   },
   {
     title: '2',
-    url: require('./assets/2.wav')
+    url: require('../assets/2.wav')
   },
   {
     title: '3',
-    url: require('./assets/3.wav')
+    url: require('../assets/3.wav')
   },
   {
     title: '4',
-    url: require('./assets/4.wav')
+    url: require('../assets/4.wav')
   },
   {
     title: '5',
-    url: require('./assets/5.wav')
+    url: require('../assets/5.wav')
   },
   {
     title: '6',
-    url: require('./assets/6.wav')
+    url: require('../assets/6.wav')
   },
   {
     title: '7',
-    url: require('./assets/7.wav')
+    url: require('../assets/7.wav')
   },
   {
     title: '8',
-    url: require('./assets/8.wav')
+    url: require('../assets/8.wav')
   },
   {
     title: '9',
-    url: require('./assets/9.wav')
+    url: require('../assets/9.wav')
   },
 
 ]
