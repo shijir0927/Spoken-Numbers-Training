@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -7,10 +7,18 @@ import {
   Text,
   StatusBar,
   TextInput,
-  Button
+  Button,
+  TouchableOpacity,
+  Modal,
+  Pressable
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { default as Sound } from 'react-native-sound';
+
+const PRIMARY_COLOR= '#4265d6';
+const SECONDARY_COLOR='#F2AC20';
+const TEXT_COLOR = '#293855';
+const LIGH_COLOR = '#C2E7C9';
 
 const App = () => {
 
@@ -18,16 +26,24 @@ const App = () => {
   const [recall, setRecall] = useState('');
   const [speed, setSpeed] = useState('1000');
   const [generatedDigits, setGeneratedDigits] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [stopPressed, setStopPressed] = useState(false);
+
   // const [language, setLanguage] = useState('');
 
   const sleep = (ms) => {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve, reject) => setTimeout(resolve, ms));
   }
 
   const handleStart = async () =>{
-
+    setStopPressed(false);
+    setModalVisible(true);
+    setTimeout(()=>{}, 5000)
     for(let i=0; i<Number(digits); i++){
-
+      if(stopPressed){
+        setModalVisible(false)
+        break
+      }
       //generating a random index
       let index = Math.floor(Math.random()*9);
       setGeneratedDigits(generatedDigits => generatedDigits.concat(index));
@@ -42,7 +58,11 @@ const App = () => {
       })
       //waiting for the previous number to be spoken
       await sleep(Number(speed));
-    }
+
+      if(i === Number(digits)-1){
+        setModalVisible(false)
+      }
+    }    
   }
   
   const handleFinish = () =>{
@@ -50,7 +70,15 @@ const App = () => {
     for(let i = 0; i<generatedDigits.length; i++){
       if(generatedDigits[i] == recall[i]) result++;
     }
-    alert(result)
+    (generatedDigits !== [] && recall !== '') && alert(result)
+    setGeneratedDigits([]);
+    setDigits('0')
+    setStopPressed(false)
+  }
+
+  const handleStop = () =>{
+    setModalVisible(false);
+    setStopPressed(true)
   }
 
 
@@ -58,31 +86,29 @@ const App = () => {
     <>
       <StatusBar barStyle="dark-content" />
       <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}
-        >
-
-          <Text>Spoken Numbers</Text>
+        <ScrollView style={{height: '100%'}}>
+          <View style={styles.scrollView}>
+          
+          <Text style={styles.header}>Spoken Numbers</Text>
           <View style = {styles.row}>
-                <Text style = {styles.text}>Digits to memorise:</Text>
-                <TextInput 
-                    style = {styles.input} 
-                    keyboardType = 'number-pad'
-                    onChangeText={text => setDigits(text)}
-                    value={digits}
-                />
-            </View>
+            <Text style = {styles.text}>Digits to memorise:</Text>
+            <TextInput 
+                style = {styles.input} 
+                keyboardType = 'number-pad'
+                onChangeText={text => setDigits(text)}
+                value={digits}
+            />
+          </View>
 
-            <View style = {styles.row}>
-                <Text style = {styles.text}>Memorization Speed(ms):</Text>
-                <TextInput 
-                    style = {styles.input} 
-                    keyboardType = 'number-pad'
-                    onChangeText={text => setSpeed(text)}
-                    value={speed}
-                />
-            </View>
+          <View style = {styles.row}>
+              <Text style = {styles.text}>Frequency(ms):</Text>
+              <TextInput 
+                  style = {styles.input} 
+                  keyboardType = 'number-pad'
+                  onChangeText={text => setSpeed(text)}
+                  value={speed}
+              />
+          </View>
 
             {/* <View style = {styles.row}>
                 <Text style = {styles.text}>Language:</Text>
@@ -97,67 +123,157 @@ const App = () => {
                 />
             </View> */}
 
-            <View style = {styles.start}>
-                <Button title = 'Start' onPress = {handleStart}/>
-            </View>
-            <Text>{generatedDigits.length}</Text>
-            {generatedDigits.length == digits ? generatedDigits.map((d, index) =>{
-              return <Text key = {index}>{d}</Text>
-            }) : null}
+          <TouchableOpacity style = {styles.button} activeOpacity={0.8} onPress={handleStart}>
+              <Text style={styles.buttonText}>Start</Text>
+          </TouchableOpacity>
 
-            <TextInput 
-              style = {styles.input} 
-              keyboardType = 'number-pad'
-              onChangeText={text => setRecall(text)}
-              value={recall}
-            />
+          {/* <View style={styles.row}>
+            <Text style={styles.text}>Recall here:</Text>
+          </View> */}
+          
+          <TextInput 
+            style = {styles.recallInput} 
+            keyboardType = 'number-pad'
+            onChangeText={text => setRecall(text)}
+            value={recall}
+            maxLength={Number(digits)}
+            placeholder="recall"
+            multiline={true}
+          />
 
-            <View style = {styles.start}>
-                <Button title = 'Finish' onPress = {handleFinish}/>
-            </View>
+          <TouchableOpacity style = {styles.button} activeOpacity={0.8} onPress={handleFinish}>
+            <Text style={styles.buttonText}>Evaluate</Text>
+          </TouchableOpacity>
+
+          {generatedDigits.map((d, index) =>{
+            return <Text key = {index}>{d}{stopPressed.toString()}</Text>
+          })}
+          </View> 
+          <Text>digits: {digits}</Text>
+          <Text>modal: {modalVisible.toString()}</Text>
+          <Text>stop pressed: {stopPressed.toString()}</Text>
         </ScrollView>
+
+        <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+          Alert.alert("Spoken numbers has been closed.");
+          setModalVisible(!modalVisible);
+        }}
+        >
+          <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalText}>Memorization in progress!</Text>
+            <Pressable
+              style={styles.modalButton}
+              onPress={handleStop}
+            >
+              <Text style={{color: 'white'}}>Stop</Text>
+            </Pressable>
+          </View>
+        </View>
+        </Modal>
       </SafeAreaView>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: '#fff',
-    height: '100%'
+  scrollView:{
+    display:'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    height: '100%',
+    // backgroundColor: LIGH_COLOR
+  },
+  header:{
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign:'center',
+    marginBottom: 40,
   },
   text:{
-    fontSize: 20
+    fontSize: 20,
+    // color: TEXT_COLOR
   },
   input:{
-      borderWidth:1,
-      borderColor: 'grey',
-      width: 100,
-      height: 35,
-      borderRadius: 4,
-      marginLeft: 20,
-      paddingLeft: 5,
-      fontSize: 18
+    borderWidth:1,
+    borderColor: 'grey',
+    width: 100,
+    height: 35,
+    borderRadius: 4,
+    paddingLeft: 5,
+    fontSize: 18
+  },
+  recallInput: {
+    borderWidth:1,
+    borderColor: 'grey',
+    width: '90%',
+    minHeight: 35,
+    borderRadius: 4,
+    paddingLeft: 5,
+    fontSize: 18,
+    marginTop: 20
   },
   row:{
-      width: 300,
+      width: '90%',
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       marginTop: 20,
-      marginLeft: 20
+      marginLeft: 10,
+      marginRight: 10
   },
-  start:{
-      marginTop: 50
+  button:{
+      marginTop: 40,
+      marginBottom:40,
+      width: '90%',
+      height: 50,
+      backgroundColor: PRIMARY_COLOR,
+      borderRadius: 4,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
   },
-  video:{
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    right: 0,
-    // backgroundColor: 'red'
+  buttonText:{
+    fontSize: 20,
+    fontWeight: '600',
+    color: 'white'
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 22
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 15,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5
+  },
+  modalButton:{
+    height: 'auto',
+    width: '100%',
+    borderRadius: 4,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: PRIMARY_COLOR,
+    padding: 10,
+    marginTop:20
   }
 });
 
