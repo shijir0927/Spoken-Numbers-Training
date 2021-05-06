@@ -10,7 +10,8 @@ import {
   Button,
   TouchableOpacity,
   Modal,
-  Pressable
+  Pressable,
+  Switch
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { default as Sound } from 'react-native-sound';
@@ -22,6 +23,7 @@ const TEXT_COLOR = '#293855';
 const LIGH_COLOR = '#C2E7C9';
 
 let stopPressed = false;
+const TIME = 20;
 
 const App = () => {
 
@@ -33,7 +35,9 @@ const App = () => {
   const [correctDigits, setCorrectDigits] = useState(0);
   const [memoModalVisible, setMemoModalVisible] = useState(false);
   const [recallModalVisible, setRecallModalVisible] = useState(false);
-
+  const [countDownTime, setCountDownTime] = useState(20)
+  const [isEnabled, setIsEnabled] = useState(false);
+  const toggleSwitch = () => setIsEnabled(previousState => !previousState);
   // const [language, setLanguage] = useState('');
 
   const sleep = (ms) => {
@@ -43,8 +47,15 @@ const App = () => {
   const handleStart = async () =>{
 
     if(digits === '' || Number(digits)===0) return
-
     stopPressed = false;
+
+    if(isEnabled){
+      setMemoModalVisible(true)
+      startCountdownTimer();
+      await sleep(20000)
+      setIsEnabled(false)
+    }
+
     setGeneratedDigits([]);
     setMemoModalVisible(true);
     setScore(0)
@@ -79,9 +90,11 @@ const App = () => {
     let scoreTemp = 0;
     let correctDigitsTemp = 0;
     for(let i = 0; i<generatedDigits.length; i++){
-      if(generatedDigits[i] != recall[i]){
+      if(generatedDigits[i] !== Number(recall[i])){
         scoreTemp = i;
         break;
+      }else{
+        scoreTemp = i+1;
       }
     }
 
@@ -105,6 +118,25 @@ const App = () => {
     stopPressed = true;
   }
 
+  const startCountdownTimer = ()=>{
+    let timeLeft = 20;
+    let timer = setInterval(()=>{
+      if(timeLeft < 1){
+        clearInterval(timer);
+        setIsEnabled(false);
+        setCountDownTime(20);
+        timeLeft = 20;
+      }
+      timeLeft --;
+      setCountDownTime(time=> time-1);
+    }, 1000)
+  }
+
+  const handleCancel = () =>{
+    setMemoModalVisible(false)
+    setIsEnabled(false);
+    stopPressed = true;
+  }
 
   return (
     <>
@@ -132,6 +164,17 @@ const App = () => {
                   onChangeText={text => setSpeed(text)}
                   value={speed}
               />
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.text}>Concentration time(20s):</Text>
+            <Switch
+              trackColor={{ false: "grey", true: PRIMARY_COLOR }}
+              // thumbColor={isEnabled ? "#f5dd4b" : "#f4f3f4"}
+              ios_backgroundColor="#3e3e3e"
+              onValueChange={toggleSwitch}
+              value={isEnabled}
+            />
           </View>
 
             {/* <View style = {styles.row}>
@@ -177,6 +220,7 @@ const App = () => {
           <Text>modal: {memoModalVisible.toString()}</Text>
           <Text>stop pressed: {stopPressed.toString()}</Text>
           <Text>score: {score.toString()}</Text> */}
+          {/* <Text>Recall: {recall[0]} generated {generatedDigits[0]}</Text> */}
         </ScrollView>
 
         <Modal
@@ -189,7 +233,17 @@ const App = () => {
         }}
         >
           <View style={styles.centeredView}>
+            {isEnabled ? 
             <View style={styles.modalView}>
+              <Text style={styles.text}>{countDownTime}</Text>
+              <Pressable
+                style={styles.modalButton}
+                onPress={handleCancel}
+              >
+                <Text style={{color: 'white'}}>Cancel</Text>
+              </Pressable>
+            </View>
+            :<View style={styles.modalView}>
               <Text style={styles.modalText}>Memorization in progress!</Text>
               <Pressable
                 style={styles.modalButton}
@@ -197,7 +251,7 @@ const App = () => {
               >
                 <Text style={{color: 'white'}}>Stop</Text>
               </Pressable>
-            </View>
+            </View>}
           </View>
         </Modal>
 
