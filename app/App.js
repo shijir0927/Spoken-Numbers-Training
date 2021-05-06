@@ -14,11 +14,14 @@ import {
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { default as Sound } from 'react-native-sound';
+import {audioFiles} from './assets';
 
 const PRIMARY_COLOR= '#4265d6';
 const SECONDARY_COLOR='#F2AC20';
 const TEXT_COLOR = '#293855';
 const LIGH_COLOR = '#C2E7C9';
+
+let stopPressed = false;
 
 const App = () => {
 
@@ -26,22 +29,29 @@ const App = () => {
   const [recall, setRecall] = useState('');
   const [speed, setSpeed] = useState('1000');
   const [generatedDigits, setGeneratedDigits] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [stopPressed, setStopPressed] = useState(false);
+  const [score, setScore] = useState(0);
+  const [correctDigits, setCorrectDigits] = useState(0);
+  const [memoModalVisible, setMemoModalVisible] = useState(false);
+  const [recallModalVisible, setRecallModalVisible] = useState(false);
 
   // const [language, setLanguage] = useState('');
 
   const sleep = (ms) => {
-    return new Promise((resolve, reject) => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   const handleStart = async () =>{
-    setStopPressed(false);
-    setModalVisible(true);
-    setTimeout(()=>{}, 5000)
+
+    if(digits === '' || Number(digits)===0) return
+
+    stopPressed = false;
+    setGeneratedDigits([]);
+    setMemoModalVisible(true);
+    setScore(0)
+
     for(let i=0; i<Number(digits); i++){
       if(stopPressed){
-        setModalVisible(false)
+        setMemoModalVisible(false)
         break
       }
       //generating a random index
@@ -60,25 +70,39 @@ const App = () => {
       await sleep(Number(speed));
 
       if(i === Number(digits)-1){
-        setModalVisible(false)
+        setMemoModalVisible(false)
       }
     }    
   }
   
   const handleFinish = () =>{
-    let result = 0;
+    let scoreTemp = 0;
+    let correctDigitsTemp = 0;
     for(let i = 0; i<generatedDigits.length; i++){
-      if(generatedDigits[i] == recall[i]) result++;
+      if(generatedDigits[i] != recall[i]){
+        scoreTemp = i;
+        break;
+      }
     }
-    (generatedDigits !== [] && recall !== '') && alert(result)
-    setGeneratedDigits([]);
-    setDigits('0')
-    setStopPressed(false)
+
+    for(let i = 0; i<generatedDigits.length; i++){
+      if(generatedDigits[i] == recall[i]){
+        correctDigitsTemp++;
+      }
+    }
+
+
+    if(generatedDigits !== [] && recall !== ''){
+      setScore(scoreTemp)
+      setCorrectDigits(correctDigitsTemp)
+      setRecallModalVisible(true)
+    }
+    stopPressed = false;
   }
 
   const handleStop = () =>{
-    setModalVisible(false);
-    setStopPressed(true)
+    setMemoModalVisible(false);
+    stopPressed = true;
   }
 
 
@@ -136,7 +160,7 @@ const App = () => {
             keyboardType = 'number-pad'
             onChangeText={text => setRecall(text)}
             value={recall}
-            maxLength={Number(digits)}
+            maxLength={generatedDigits.length}
             placeholder="recall"
             multiline={true}
           />
@@ -145,35 +169,67 @@ const App = () => {
             <Text style={styles.buttonText}>Evaluate</Text>
           </TouchableOpacity>
 
-          {generatedDigits.map((d, index) =>{
-            return <Text key = {index}>{d}{stopPressed.toString()}</Text>
-          })}
+          {/* {generatedDigits.map((d, index) =>{
+            return <Text key = {index}>{d}</Text>
+          })} */}
           </View> 
-          <Text>digits: {digits}</Text>
-          <Text>modal: {modalVisible.toString()}</Text>
+          {/* <Text>digits: {digits}</Text>
+          <Text>modal: {memoModalVisible.toString()}</Text>
           <Text>stop pressed: {stopPressed.toString()}</Text>
+          <Text>score: {score.toString()}</Text> */}
         </ScrollView>
 
         <Modal
         animationType="slide"
         transparent={true}
-        visible={modalVisible}
+        visible={memoModalVisible}
         onRequestClose={() => {
           Alert.alert("Spoken numbers has been closed.");
-          setModalVisible(!modalVisible);
+          setMemoModalVisible(!memoModalVisible);
         }}
         >
           <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalText}>Memorization in progress!</Text>
-            <Pressable
-              style={styles.modalButton}
-              onPress={handleStop}
-            >
-              <Text style={{color: 'white'}}>Stop</Text>
-            </Pressable>
+            <View style={styles.modalView}>
+              <Text style={styles.modalText}>Memorization in progress!</Text>
+              <Pressable
+                style={styles.modalButton}
+                onPress={handleStop}
+              >
+                <Text style={{color: 'white'}}>Stop</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        </Modal>
+
+        <Modal
+        animationType="slide"
+        transparent={true}
+        visible={recallModalVisible}
+        onRequestClose={() => {
+          Alert.alert("Spoken numbers has been closed.");
+          setMemoModalVisible(!recallModalVisible);
+        }}
+        >
+          <View style={styles.centeredView}>
+            <View style={styles.modalView}>
+              <Text style={styles.modalText}>You got {score} point{score > 1 && 's'}! ({`${correctDigits}/${generatedDigits.length}`})</Text>
+              <View style={styles.recallResult}>
+                {generatedDigits.map((d, index) =>{
+                  let color = 'black';
+                  if(d !== Number(recall[index])){
+                    color = 'red'
+                  }
+                  return <Text key = {index} style={{color: color, fontSize:20, letterSpacing: 3}}>{d}</Text>
+                })}
+              </View>
+              <Pressable
+                style={styles.modalButton}
+                onPress={()=>setRecallModalVisible(false)}
+              >
+                <Text style={{color: 'white'}}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
         </Modal>
       </SafeAreaView>
     </>
@@ -192,7 +248,8 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     textAlign:'center',
-    marginBottom: 40,
+    marginBottom: 20,
+    marginTop: 20
   },
   text:{
     fontSize: 20,
@@ -204,7 +261,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 35,
     borderRadius: 4,
-    paddingLeft: 5,
+    padding: 5,
     fontSize: 18
   },
   recallInput: {
@@ -213,9 +270,10 @@ const styles = StyleSheet.create({
     width: '90%',
     minHeight: 35,
     borderRadius: 4,
-    paddingLeft: 5,
+    padding: 5,
     fontSize: 18,
-    marginTop: 20
+    marginTop: 20,
+    letterSpacing: 2
   },
   row:{
       width: '90%',
@@ -274,51 +332,17 @@ const styles = StyleSheet.create({
     backgroundColor: PRIMARY_COLOR,
     padding: 10,
     marginTop:20
+  },
+  modalText:{
+    fontSize: 24,
+    marginBottom: 20
+  },
+  recallResult:{
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignSelf: 'flex-start'
   }
 });
 
 export default App;
-
-const audioFiles = [
-  {
-    title: '0',
-    url: require('./assets/0.wav')
-  },
-  {
-    title: '1',
-    url: require('./assets/1.wav')
-  },
-  {
-    title: '2',
-    url: require('./assets/2.wav')
-  },
-  {
-    title: '3',
-    url: require('./assets/3.wav')
-  },
-  {
-    title: '4',
-    url: require('./assets/4.wav')
-  },
-  {
-    title: '5',
-    url: require('./assets/5.wav')
-  },
-  {
-    title: '6',
-    url: require('./assets/6.wav')
-  },
-  {
-    title: '7',
-    url: require('./assets/7.wav')
-  },
-  {
-    title: '8',
-    url: require('./assets/8.wav')
-  },
-  {
-    title: '9',
-    url: require('./assets/9.wav')
-  },
-
-]
